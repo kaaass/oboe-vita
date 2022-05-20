@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.4.1)
 
+if (NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if (DEFINED ENV{VITASDK})
+        set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+    else ()
+        message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+    endif ()
+endif ()
+
 # Set the name of the project and store it in PROJECT_NAME. Also set the following variables:
 # PROJECT_SOURCE_DIR (usually the root directory where Oboe has been cloned e.g.)
 # PROJECT_BINARY_DIR (usually the containing project's binary directory,
@@ -80,14 +88,13 @@ target_compile_options(oboe
         -Wall
         -Wextra-semi
         -Wshadow
-        -Wshadow-field
         -Ofast
         "$<$<CONFIG:DEBUG>:-Werror>")
 
 # Enable logging of D,V for debug builds
 target_compile_definitions(oboe PUBLIC $<$<CONFIG:DEBUG>:OBOE_ENABLE_LOGGING=1>)
 
-target_link_libraries(oboe PRIVATE log OpenSLES)
+target_link_libraries(oboe PRIVATE OpenSLES)
 
 # When installing oboe put the libraries in the lib/<ABI> folder e.g. lib/arm64-v8a
 install(TARGETS oboe
