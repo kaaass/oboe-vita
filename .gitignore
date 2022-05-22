@@ -6,3 +6,5 @@
 build
 .logpile
 cmake-*
+package
+!package/VITABUILD
