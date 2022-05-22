@@ -26,31 +26,6 @@
 
 using namespace oboe;
 
-static SLuint32 OpenSLES_convertInputPreset(InputPreset oboePreset) {
-    SLuint32 openslPreset = SL_ANDROID_RECORDING_PRESET_NONE;
-    switch(oboePreset) {
-        case InputPreset::Generic:
-            openslPreset =  SL_ANDROID_RECORDING_PRESET_GENERIC;
-            break;
-        case InputPreset::Camcorder:
-            openslPreset =  SL_ANDROID_RECORDING_PRESET_CAMCORDER;
-            break;
-        case InputPreset::VoiceRecognition:
-        case InputPreset::VoicePerformance:
-            openslPreset =  SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION;
-            break;
-        case InputPreset::VoiceCommunication:
-            openslPreset =  SL_ANDROID_RECORDING_PRESET_VOICE_COMMUNICATION;
-            break;
-        case InputPreset::Unprocessed:
-            openslPreset =  SL_ANDROID_RECORDING_PRESET_UNPROCESSED;
-            break;
-        default:
-            break;
-    }
-    return openslPreset;
-}
-
 AudioInputStreamOpenSLES::AudioInputStreamOpenSLES(const AudioStreamBuilder &builder)
         : AudioStreamOpenSLES(builder) {
 }
@@ -115,22 +90,6 @@ Result AudioInputStreamOpenSLES::open() {
 
     SLDataSink audioSink = {&loc_bufq, &format_pcm};
 
-    /**
-     * API 23 (Marshmallow) introduced support for floating-point data representation and an
-     * extended data format type: SLAndroidDataFormat_PCM_EX for recording streams (playback streams
-     * got this in API 21). If running on API 23+ use this newer format type, creating it from our
-     * original format.
-     */
-    SLAndroidDataFormat_PCM_EX format_pcm_ex;
-    if (getSdkVersion() >= __ANDROID_API_M__) {
-        SLuint32 representation = OpenSLES_ConvertFormatToRepresentation(getFormat());
-        // Fill in the format structure.
-        format_pcm_ex = OpenSLES_createExtendedFormat(format_pcm, representation);
-        // Use in place of the previous format.
-        audioSink.pFormat = &format_pcm_ex;
-    }
-
-
     // configure audio source
     SLDataLocator_IODevice loc_dev = {SL_DATALOCATOR_IODEVICE,
                                       SL_IODEVICE_AUDIOINPUT,
@@ -159,26 +118,6 @@ Result AudioInputStreamOpenSLES::open() {
         if (getInputPreset() == InputPreset::VoicePerformance) {
             LOGD("OpenSL ES does not support InputPreset::VoicePerformance. Use VoiceRecognition.");
             mInputPreset = InputPreset::VoiceRecognition;
-        }
-        SLuint32 presetValue = OpenSLES_convertInputPreset(getInputPreset());
-        result = (*configItf)->SetConfiguration(configItf,
-                                         SL_ANDROID_KEY_RECORDING_PRESET,
-                                         &presetValue,
-                                         sizeof(SLuint32));
-        if (SL_RESULT_SUCCESS != result
-                && presetValue != SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION) {
-            presetValue = SL_ANDROID_RECORDING_PRESET_VOICE_RECOGNITION;
-            LOGD("Setting InputPreset %d failed. Using VoiceRecognition instead.", getInputPreset());
-            mInputPreset = InputPreset::VoiceRecognition;
-            (*configItf)->SetConfiguration(configItf,
-                                             SL_ANDROID_KEY_RECORDING_PRESET,
-                                             &presetValue,
-                                             sizeof(SLuint32));
-        }
-
-        result = configurePerformanceMode(configItf);
-        if (SL_RESULT_SUCCESS != result) {
-            goto error;
         }
     }
 

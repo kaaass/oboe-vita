@@ -28,40 +28,6 @@
 
 using namespace oboe;
 
-static SLuint32 OpenSLES_convertOutputUsage(Usage oboeUsage) {
-    SLuint32 openslStream = SL_ANDROID_STREAM_MEDIA;
-    switch(oboeUsage) {
-        case Usage::Media:
-            openslStream = SL_ANDROID_STREAM_MEDIA;
-            break;
-        case Usage::VoiceCommunication:
-        case Usage::VoiceCommunicationSignalling:
-            openslStream = SL_ANDROID_STREAM_VOICE;
-            break;
-        case Usage::Alarm:
-            openslStream = SL_ANDROID_STREAM_ALARM;
-            break;
-        case Usage::Notification:
-        case Usage::NotificationRingtone:
-        case Usage::NotificationEvent:
-            openslStream = SL_ANDROID_STREAM_NOTIFICATION;
-            break;
-        case Usage::AssistanceAccessibility:
-        case Usage::AssistanceNavigationGuidance:
-        case Usage::AssistanceSonification:
-            openslStream = SL_ANDROID_STREAM_SYSTEM;
-            break;
-        case Usage::Game:
-            openslStream = SL_ANDROID_STREAM_MEDIA;
-            break;
-        case Usage::Assistant:
-        default:
-            openslStream = SL_ANDROID_STREAM_SYSTEM;
-            break;
-    }
-    return openslStream;
-}
-
 AudioOutputStreamOpenSLES::AudioOutputStreamOpenSLES(const AudioStreamBuilder &builder)
         : AudioStreamOpenSLES(builder) {
 }
@@ -112,21 +78,13 @@ SLuint32 AudioOutputStreamOpenSLES::channelCountToChannelMask(int channelCount) 
 Result AudioOutputStreamOpenSLES::open() {
     logUnsupportedAttributes();
 
-    SLAndroidConfigurationItf configItf = nullptr;
-
-
-    if (getSdkVersion() < __ANDROID_API_L__ && mFormat == AudioFormat::Float){
-        // TODO: Allow floating point format on API <21 using float->int16 converter
-        return Result::ErrorInvalidFormat;
-    }
-
     // If audio format is unspecified then choose a suitable default.
     // API 21+: FLOAT
     // API <21: INT16
     if (mFormat == AudioFormat::Unspecified){
-        mFormat = (getSdkVersion() < __ANDROID_API_L__) ?
-                  AudioFormat::I16 : AudioFormat::Float;
+        mFormat = AudioFormat::I16;
     }
+    // mFormat = AudioFormat::I16
 
     Result oboeResult = AudioStreamOpenSLES::open();
     if (Result::OK != oboeResult)  return oboeResult;
@@ -157,48 +115,11 @@ Result AudioOutputStreamOpenSLES::open() {
 
     SLDataSource audioSrc = {&loc_bufq, &format_pcm};
 
-    /**
-     * API 21 (Lollipop) introduced support for floating-point data representation and an extended
-     * data format type: SLAndroidDataFormat_PCM_EX. If running on API 21+ use this newer format
-     * type, creating it from our original format.
-     */
-    SLAndroidDataFormat_PCM_EX format_pcm_ex;
-    if (getSdkVersion() >= __ANDROID_API_L__) {
-        SLuint32 representation = OpenSLES_ConvertFormatToRepresentation(getFormat());
-        // Fill in the format structure.
-        format_pcm_ex = OpenSLES_createExtendedFormat(format_pcm, representation);
-        // Use in place of the previous format.
-        audioSrc.pFormat = &format_pcm_ex;
-    }
-
     result = OutputMixerOpenSL::getInstance().createAudioPlayer(&mObjectInterface,
                                                                           &audioSrc);
     if (SL_RESULT_SUCCESS != result) {
         LOGE("createAudioPlayer() result:%s", getSLErrStr(result));
         goto error;
-    }
-
-    // Configure the stream.
-    result = (*mObjectInterface)->GetInterface(mObjectInterface,
-                                               SL_IID_ANDROIDCONFIGURATION,
-                                               (void *)&configItf);
-    if (SL_RESULT_SUCCESS != result) {
-        LOGW("%s() GetInterface(SL_IID_ANDROIDCONFIGURATION) failed with %s",
-             __func__, getSLErrStr(result));
-    } else {
-        result = configurePerformanceMode(configItf);
-        if (SL_RESULT_SUCCESS != result) {
-            goto error;
-        }
-
-        SLuint32 presetValue = OpenSLES_convertOutputUsage(getUsage());
-        result = (*configItf)->SetConfiguration(configItf,
-                                                SL_ANDROID_KEY_STREAM_TYPE,
-                                                &presetValue,
-                                                sizeof(presetValue));
-        if (SL_RESULT_SUCCESS != result) {
-            goto error;
-        }
     }
 
     result = (*mObjectInterface)->Realize(mObjectInterface, SL_BOOLEAN_FALSE);
@@ -214,11 +135,6 @@ Result AudioOutputStreamOpenSLES::open() {
     }
 
     result = AudioStreamOpenSLES::registerBufferQueueCallback();
-    if (SL_RESULT_SUCCESS != result) {
-        goto error;
-    }
-
-    result = updateStreamParameters(configItf);
     if (SL_RESULT_SUCCESS != result) {
         goto error;
     }

@@ -20,8 +20,6 @@
 #include <dlfcn.h>
 #include <stdint.h>
 
-#include <sys/system_properties.h>
-
 #include "common/OboeDebug.h"
 #include "oboe/Oboe.h"
 #include "AAudioLoader.h"
@@ -109,12 +107,7 @@ private:
     typedef int32_t aaudio_policy_t;
 
     int getIntegerProperty(const char *name, int defaultValue) {
-        int result = defaultValue;
-        char valueText[PROP_VALUE_MAX] = {0};
-        if (__system_property_get(name, valueText) != 0) {
-            result = atoi(valueText);
-        }
-        return result;
+        return 0;
     }
 
     /**

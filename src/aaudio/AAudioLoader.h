@@ -70,6 +70,8 @@ typedef int32_t aaudio_session_id_t;
 #define __ANDROID_API_S__ 31
 #endif
 
+#define __ANDROID_API_P__ 999
+
 namespace oboe {
 
 /**

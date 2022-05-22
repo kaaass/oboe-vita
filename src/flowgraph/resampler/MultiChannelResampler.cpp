@@ -15,6 +15,7 @@
  */
 
 #include <math.h>
+#include <math_neon.h>
 
 #include "IntegerRatio.h"
 #include "LinearResampler.h"

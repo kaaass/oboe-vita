@@ -17,6 +17,8 @@
 #include <cassert>
 #include <stdint.h>
 #include <stdlib.h>
+#define	__BSD_VISIBLE		1
+#include <unistd.h>
 
 #include "aaudio/AAudioLoader.h"
 #include "aaudio/AudioStreamAAudio.h"
@@ -24,6 +26,7 @@
 #include "common/OboeDebug.h"
 #include "oboe/Utilities.h"
 #include "AAudioExtensions.h"
+#include "common/QuirksManager.h"
 
 #ifdef __ANDROID__
 #include <sys/system_properties.h>

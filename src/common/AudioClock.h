@@ -20,6 +20,8 @@
 #include <sys/types.h>
 #include <ctime>
 #include "oboe/Definitions.h"
+#include "FixedBlockAdapter.h"
+#include "flowgraph/resampler/MultiChannelResampler.h"
 
 namespace oboe {
 
@@ -36,21 +38,6 @@ public:
     }
 
     /**
-     * Sleep until the specified time.
-     *
-     * @param nanoTime time to wake up
-     * @param clockId CLOCK_MONOTONIC is default
-     * @return 0 or a negative error, eg. -EINTR
-     */
-
-    static int sleepUntilNanoTime(int64_t nanoTime, clockid_t clockId = CLOCK_MONOTONIC) {
-        struct timespec time;
-        time.tv_sec = nanoTime / kNanosPerSecond;
-        time.tv_nsec = nanoTime - (time.tv_sec * kNanosPerSecond);
-        return 0 - clock_nanosleep(clockId, TIMER_ABSTIME, &time, NULL);
-    }
-
-    /**
      * Sleep for the specified number of nanoseconds in real-time.
      * Return immediately with 0 if a negative nanoseconds is specified.
      *
@@ -64,7 +51,7 @@ public:
             struct timespec time;
             time.tv_sec = nanoseconds / kNanosPerSecond;
             time.tv_nsec = nanoseconds - (time.tv_sec * kNanosPerSecond);
-            return 0 - clock_nanosleep(clockId, 0, &time, NULL);
+            return 0 - nanosleep(&time, nullptr); // we have no clock_nanosleep
         }
         return 0;
     }

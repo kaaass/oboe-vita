@@ -542,8 +542,6 @@ protected:
 
 private:
 
-    // Log the scheduler if it changes.
-    void                 checkScheduler();
     int                  mPreviousScheduler = -1;
 
     std::atomic<bool>    mDataCallbackEnabled{false};

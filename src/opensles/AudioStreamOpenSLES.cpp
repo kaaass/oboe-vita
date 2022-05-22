@@ -14,7 +14,7 @@
  */
 #include <sys/types.h>
 #include <cassert>
-#include <android/log.h>
+#include "../common/log.h"
 
 
 #include <SLES/OpenSLES.h>
@@ -48,11 +48,6 @@ SLuint32 AudioStreamOpenSLES::channelCountToChannelMaskDefault(int channelCount)
 
     SLuint32 bitfield = (1 << channelCount) - 1;
 
-    // Check for OS at run-time.
-    if(getSdkVersion() >= __ANDROID_API_N__) {
-        return SL_ANDROID_MAKE_INDEXED_CHANNEL_MASK(bitfield);
-    }
-
     // Indexed channels masks were added in N.
     // For before N, the best we can do is use a positional channel mask.
     return bitfield;
@@ -70,6 +65,8 @@ SLuint32 AudioStreamOpenSLES::getDefaultByteOrder() {
 Result AudioStreamOpenSLES::open() {
 
     LOGI("AudioStreamOpenSLES::open() chans=%d, rate=%d", mChannelCount, mSampleRate);
+    // mChannelCount = 2
+    // mSampleRate = 44100
 
     SLresult result = EngineOpenSLES::getInstance().open();
     if (SL_RESULT_SUCCESS != result) {
@@ -107,17 +104,6 @@ Result AudioStreamOpenSLES::configureBufferSizes(int32_t sampleRate) {
         int32_t framesPerHighLatencyBuffer =
                 (kHighLatencyBufferSizeMillis * sampleRate) / kMillisPerSecond;
 
-        // For high latency streams, use a larger buffer size.
-        // Performance Mode support was added in N_MR1 (7.1)
-        if (getSdkVersion() >= __ANDROID_API_N_MR1__
-            && mPerformanceMode != PerformanceMode::LowLatency
-            && mFramesPerBurst < framesPerHighLatencyBuffer) {
-            // Find a multiple of framesPerBurst >= framesPerHighLatencyBuffer.
-            int32_t numBursts = (framesPerHighLatencyBuffer + mFramesPerBurst - 1) / mFramesPerBurst;
-            mFramesPerBurst *= numBursts;
-            LOGD("AudioStreamOpenSLES:%s() NOT low latency, set mFramesPerBurst = %d",
-                 __func__, mFramesPerBurst);
-        }
         mFramesPerCallback = mFramesPerBurst;
     }
     LOGD("AudioStreamOpenSLES:%s(%d) final mFramesPerBurst = %d, mFramesPerCallback = %d",
@@ -145,43 +131,6 @@ Result AudioStreamOpenSLES::configureBufferSizes(int32_t sampleRate) {
     }
 
     return Result::OK;
-}
-
-SLuint32 AudioStreamOpenSLES::convertPerformanceMode(PerformanceMode oboeMode) const {
-    SLuint32 openslMode = SL_ANDROID_PERFORMANCE_NONE;
-    switch(oboeMode) {
-        case PerformanceMode::None:
-            openslMode =  SL_ANDROID_PERFORMANCE_NONE;
-            break;
-        case PerformanceMode::LowLatency:
-            openslMode =  (getSessionId() == SessionId::None) ?  SL_ANDROID_PERFORMANCE_LATENCY : SL_ANDROID_PERFORMANCE_LATENCY_EFFECTS;
-            break;
-        case PerformanceMode::PowerSaving:
-            openslMode =  SL_ANDROID_PERFORMANCE_POWER_SAVING;
-            break;
-        default:
-            break;
-    }
-    return openslMode;
-}
-
-PerformanceMode AudioStreamOpenSLES::convertPerformanceMode(SLuint32 openslMode) const {
-    PerformanceMode oboeMode = PerformanceMode::None;
-    switch(openslMode) {
-        case SL_ANDROID_PERFORMANCE_NONE:
-            oboeMode =  PerformanceMode::None;
-            break;
-        case SL_ANDROID_PERFORMANCE_LATENCY:
-        case SL_ANDROID_PERFORMANCE_LATENCY_EFFECTS:
-            oboeMode =  PerformanceMode::LowLatency;
-            break;
-        case SL_ANDROID_PERFORMANCE_POWER_SAVING:
-            oboeMode =  PerformanceMode::PowerSaving;
-            break;
-        default:
-            break;
-    }
-    return oboeMode;
 }
 
 void AudioStreamOpenSLES::logUnsupportedAttributes() {
@@ -217,53 +166,9 @@ void AudioStreamOpenSLES::logUnsupportedAttributes() {
     }
 }
 
-SLresult AudioStreamOpenSLES::configurePerformanceMode(SLAndroidConfigurationItf configItf) {
-
-    if (configItf == nullptr) {
-        LOGW("%s() called with NULL configuration", __func__);
-        mPerformanceMode = PerformanceMode::None;
-        return SL_RESULT_INTERNAL_ERROR;
-    }
-    if (getSdkVersion() < __ANDROID_API_N_MR1__) {
-        LOGW("%s() not supported until N_MR1", __func__);
-        mPerformanceMode = PerformanceMode::None;
-        return SL_RESULT_SUCCESS;
-    }
-
-    SLresult result = SL_RESULT_SUCCESS;
-    SLuint32 performanceMode = convertPerformanceMode(getPerformanceMode());
-    result = (*configItf)->SetConfiguration(configItf, SL_ANDROID_KEY_PERFORMANCE_MODE,
-                                                     &performanceMode, sizeof(performanceMode));
-    if (SL_RESULT_SUCCESS != result) {
-        LOGW("SetConfiguration(PERFORMANCE_MODE, SL %u) returned %s",
-             performanceMode, getSLErrStr(result));
-        mPerformanceMode = PerformanceMode::None;
-    }
-
-    return result;
-}
-
 SLresult AudioStreamOpenSLES::updateStreamParameters(SLAndroidConfigurationItf configItf) {
     SLresult result = SL_RESULT_SUCCESS;
-    if(getSdkVersion() >= __ANDROID_API_N_MR1__ && configItf != nullptr) {
-        SLuint32 performanceMode = 0;
-        SLuint32 performanceModeSize = sizeof(performanceMode);
-        result = (*configItf)->GetConfiguration(configItf, SL_ANDROID_KEY_PERFORMANCE_MODE,
-                                                &performanceModeSize, &performanceMode);
-        // A bug in GetConfiguration() before P caused a wrong result code to be returned.
-        if (getSdkVersion() <= __ANDROID_API_O_MR1__) {
-            result = SL_RESULT_SUCCESS; // Ignore actual result before P.
-        }
-
-        if (SL_RESULT_SUCCESS != result) {
-            LOGW("GetConfiguration(SL_ANDROID_KEY_PERFORMANCE_MODE) returned %d", result);
-            mPerformanceMode = PerformanceMode::None; // If we can't query it then assume None.
-        } else {
-            mPerformanceMode = convertPerformanceMode(performanceMode); // convert SL to Oboe mode
-        }
-    } else {
-        mPerformanceMode = PerformanceMode::None; // If we can't query it then assume None.
-    }
+    mPerformanceMode = PerformanceMode::None; // If we can't query it then assume None.
     return result;
 }
 

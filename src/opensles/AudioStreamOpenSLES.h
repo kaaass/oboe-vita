@@ -92,12 +92,7 @@ protected:
 
     SLresult enqueueCallbackBuffer(SLAndroidSimpleBufferQueueItf bq);
 
-    SLresult configurePerformanceMode(SLAndroidConfigurationItf configItf);
-
     SLresult updateStreamParameters(SLAndroidConfigurationItf configItf);
-
-    PerformanceMode convertPerformanceMode(SLuint32 openslMode) const;
-    SLuint32 convertPerformanceMode(PerformanceMode oboeMode) const;
 
     Result configureBufferSizes(int32_t sampleRate);
 

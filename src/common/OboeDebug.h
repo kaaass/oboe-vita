@@ -18,11 +18,14 @@
 #ifndef OBOE_DEBUG_H
 #define OBOE_DEBUG_H
 
-#include <android/log.h>
+#include "log.h"
 
 #ifndef MODULE_NAME
 #define MODULE_NAME  "OboeAudio"
 #endif
+
+// when OBOE_ENABLE_LOGGING enabled, you should implement your own __android_log_print
+#if OBOE_ENABLE_LOGGING
 
 // Always log INFO and errors.
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, MODULE_NAME, __VA_ARGS__)
@@ -30,7 +33,6 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, MODULE_NAME, __VA_ARGS__)
 #define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, MODULE_NAME, __VA_ARGS__)
 
-#if OBOE_ENABLE_LOGGING
 #define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, MODULE_NAME, __VA_ARGS__)
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, MODULE_NAME, __VA_ARGS__)
 #else

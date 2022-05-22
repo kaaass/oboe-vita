@@ -17,6 +17,12 @@
 #ifndef OBOE_DEFINITIONS_H
 #define OBOE_DEFINITIONS_H
 
+#define __ANDROID_API_O_MR1__ 999
+#define __ANDROID_API_L__ 999
+#define __ANDROID_API_O__ 999
+#define __ANDROID_API_M__ 999
+#define __ANDROID_API_N_MR1__ 999
+
 #include <cstdint>
 #include <type_traits>
 

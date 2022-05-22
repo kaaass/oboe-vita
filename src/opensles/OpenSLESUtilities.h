@@ -24,21 +24,6 @@ namespace oboe {
 
 const char *getSLErrStr(SLresult code);
 
-/**
- * Creates an extended PCM format from the supplied format and data representation. This method
- * should only be called on Android devices with API level 21+. API 21 introduced the
- * SLAndroidDataFormat_PCM_EX object which allows audio samples to be represented using
- * single precision floating-point.
- *
- * @param format
- * @param representation
- * @return the extended PCM format
- */
-SLAndroidDataFormat_PCM_EX OpenSLES_createExtendedFormat(SLDataFormat_PCM format,
-                                                         SLuint32 representation);
-
-SLuint32 OpenSLES_ConvertFormatToRepresentation(AudioFormat format);
-
 } // namespace oboe
 
 #endif //OBOE_OPENSLES_OPENSLESUTILITIES_H

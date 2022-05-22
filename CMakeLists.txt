@@ -14,6 +14,8 @@ endif ()
 # e.g. ${OBOE_HOME}/samples/RhythmGame/.externalNativeBuild/cmake/ndkExtractorDebug/x86/oboe-bin)
 project(oboe)
 
+add_definitions(-DOBOE_NO_INCLUDE_AAUDIO)
+
 set (oboe_sources
     src/aaudio/AAudioLoader.cpp
     src/aaudio/AudioStreamAAudio.cpp
@@ -85,11 +87,10 @@ target_include_directories(oboe
 target_compile_options(oboe
         PRIVATE
         -std=c++17
-        -Wall
         -Wextra-semi
         -Wshadow
         -Ofast
-        "$<$<CONFIG:DEBUG>:-Werror>")
+        )
 
 # Enable logging of D,V for debug builds
 target_compile_definitions(oboe PUBLIC $<$<CONFIG:DEBUG>:OBOE_ENABLE_LOGGING=1>)

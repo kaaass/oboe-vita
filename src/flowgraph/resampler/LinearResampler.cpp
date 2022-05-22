@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <cstring>
 #include "LinearResampler.h"
 
 using namespace resampler;
