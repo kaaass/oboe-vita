@@ -25,19 +25,41 @@
 #endif
 
 // when OBOE_ENABLE_LOGGING enabled, you should implement your own __android_log_print
-#if OBOE_ENABLE_LOGGING
 
-// Always log INFO and errors.
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, MODULE_NAME, __VA_ARGS__)
-#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, MODULE_NAME, __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, MODULE_NAME, __VA_ARGS__)
+#if defined(OBOE_ENABLE_LOGGING) && OBOE_LOG_LEVEL >= 0
 #define LOGF(...) __android_log_print(ANDROID_LOG_FATAL, MODULE_NAME, __VA_ARGS__)
+#else
+#define LOGF(...)
+#endif
 
-#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, MODULE_NAME, __VA_ARGS__)
+#if defined(OBOE_ENABLE_LOGGING) && OBOE_LOG_LEVEL >= 1
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, MODULE_NAME, __VA_ARGS__)
+#else
+#define LOGE(...)
+#endif
+
+#if defined(OBOE_ENABLE_LOGGING) && OBOE_LOG_LEVEL >= 2
+#define LOGW(...) __android_log_print(ANDROID_LOG_WARN, MODULE_NAME, __VA_ARGS__)
+#else
+#define LOGW(...)
+#endif
+
+#if defined(OBOE_ENABLE_LOGGING) && OBOE_LOG_LEVEL >= 3
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, MODULE_NAME, __VA_ARGS__)
+#else
+#define LOGI(...)
+#endif
+
+#if defined(OBOE_ENABLE_LOGGING) && OBOE_LOG_LEVEL >= 4
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, MODULE_NAME, __VA_ARGS__)
 #else
-#define LOGV(...)
 #define LOGD(...)
+#endif
+
+#if defined(OBOE_ENABLE_LOGGING) && OBOE_LOG_LEVEL >= 5
+#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, MODULE_NAME, __VA_ARGS__)
+#else
+#define LOGV(...)
 #endif
 
 #endif //OBOE_DEBUG_H

@@ -92,8 +92,10 @@ target_compile_options(oboe
         -Ofast
         )
 
-# Enable logging of D,V for debug builds
-target_compile_definitions(oboe PUBLIC $<$<CONFIG:DEBUG>:OBOE_ENABLE_LOGGING=1>)
+# Enable logging for debug builds
+target_compile_definitions(oboe PUBLIC
+        $<$<CONFIG:DEBUG>:OBOE_ENABLE_LOGGING=1>
+        $<$<CONFIG:DEBUG>:OBOE_LOG_LEVEL=3>)
 
 target_link_libraries(oboe PRIVATE OpenSLES)
 
